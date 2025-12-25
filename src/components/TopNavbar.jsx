@@ -16,7 +16,7 @@ const TopNavbar = () => {
     'hover:bg-yellow-600'
 
   return (
-    <div className="w-full bg-gradient-to-r from-yellow-700 via-yellow-500 to-yellow-700 text-white shadow-ku">
+    <div className="fixed top-0 w-full bg-gradient-to-r from-yellow-700 via-yellow-500 to-yellow-700 text-white shadow-ku">
       
       <div className="flex justify-center">
         <nav className="px-2 sm:px-8 py-2 flex  justify-center gap-2 sm:gap-4">

@@ -4,16 +4,68 @@ import TopBar from '../../components/shalat/TopBar'
 const AbsensiShalat = () => {
   const videoRef = useRef(null)
   const canvasRef = useRef(null)
+  const [lokasi, setLokasi] = useState(null)
+
 
   const [foto, setFoto] = useState(null)
   const [shalat, setShalat] = useState('')
   const [stream, setStream] = useState(null)
 
+    const ambilLokasi = async () => {
+    return new Promise((resolve, reject) => {
+      if (!navigator.geolocation) {
+        reject('Geolocation tidak didukung')
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        async (pos) => {
+          const lat = pos.coords.latitude
+          const lng = pos.coords.longitude
+
+          try {
+            // Reverse geocoding (OpenStreetMap)
+            const res = await fetch(
+              `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`
+            )
+            const data = await res.json()
+
+            const city =
+              data.address.city ||
+              data.address.town ||
+              data.address.village ||
+              data.address.county ||
+              '-'
+
+            resolve({
+              lat: lat.toFixed(6),
+              lng: lng.toFixed(6),
+              city,
+            })
+          } catch {
+            resolve({
+              lat: lat.toFixed(6),
+              lng: lng.toFixed(6),
+              city: '-',
+            })
+          }
+        },
+        () => reject('Izin lokasi ditolak'),
+        { enableHighAccuracy: true }
+      )
+    })
+  }
+
+
   // AKTIFKAN KAMERA
   const startCamera = () => {
     navigator.mediaDevices
       .getUserMedia({
-        video: { facingMode: 'user' },
+        video: {
+          facingMode: 'user',
+          width: { ideal: 720 },
+          height: { ideal: 1280 },
+          aspectRatio: 9 / 16, // portrait selfie
+        },
         audio: false,
       })
       .then((mediaStream) => {
@@ -25,6 +77,7 @@ const AbsensiShalat = () => {
       })
   }
 
+
   useEffect(() => {
     startCamera()
     return () => {
@@ -35,23 +88,53 @@ const AbsensiShalat = () => {
   }, [])
 
   // AMBIL FOTO
-  const ambilFoto = () => {
+  const ambilFoto = async () => {
     if (!shalat) {
       alert('Pilih shalat terlebih dahulu')
       return
     }
 
-    const canvas = canvasRef.current
-    const video = videoRef.current
+    try {
+      const lokasi = await ambilLokasi()
 
-    canvas.width = video.videoWidth
-    canvas.height = video.videoHeight
+      const canvas = canvasRef.current
+      const video = videoRef.current
 
-    const ctx = canvas.getContext('2d')
-    ctx.drawImage(video, 0, 0)
+      canvas.width = video.videoWidth
+      canvas.height = video.videoHeight
 
-    setFoto(canvas.toDataURL('image/png'))
+      const ctx = canvas.getContext('2d')
+
+      // Gambar kamera
+      ctx.drawImage(video, 0, 0)
+
+      const now = new Date()
+      const waktu = now.toLocaleString('id-ID')
+
+      // Background teks
+      ctx.fillStyle = 'rgba(0,0,0,0.45)'
+      ctx.fillRect(0, canvas.height - 120, canvas.width, 120)
+
+      // Teks
+      ctx.fillStyle = '#fff'
+      ctx.font = '20px Arial'
+
+      ctx.fillText(`Shalat : ${shalat}`, 20, canvas.height - 90)
+      ctx.fillText(`Waktu  : ${waktu}`, 20, canvas.height - 65)
+      ctx.fillText(`Kota   : ${lokasi.city}`, 20, canvas.height - 40)
+      ctx.fillText(
+        `Kordinat  : ${lokasi.lat}, ${lokasi.lng}`,
+        20,
+        canvas.height - 15
+      )
+
+      setFoto(canvas.toDataURL('image/png'))
+    } catch (err) {
+      alert(err)
+    }
   }
+
+
 
   // REFRESH ABSENSI
   const refreshAbsensi = () => {
@@ -64,7 +147,7 @@ const AbsensiShalat = () => {
   }
 
   return (
-    <>
+    <div className='py-14'>
       <TopBar />
 
       <div className="lg:w-[60%] w-[98%] mx-auto mt-6 bg-white rounded-lg shadow-ku p-6">
@@ -92,12 +175,14 @@ const AbsensiShalat = () => {
           {/* KAMERA */}
           {!foto ? (
             <>
-              <video
-                ref={videoRef}
-                autoPlay
-                playsInline
-                className="rounded-lg border w-[450px]"
-              />
+        <video
+          ref={videoRef}
+          autoPlay
+          playsInline
+          className="rounded-lg border w-[320px] h-[420px] object-cover"
+        />
+
+
               <div className="flex gap-3">
                 <button
                   onClick={ambilFoto}
@@ -118,7 +203,7 @@ const AbsensiShalat = () => {
               <img
                 src={foto}
                 alt="Selfie"
-                className="rounded-lg border w-[320px] "
+                className="rounded-lg border w-[320px]"
               />
               <p className="text-slate-600 text-sm">
                 Shalat: <span className="font-semibold">{shalat}</span>
@@ -143,7 +228,7 @@ const AbsensiShalat = () => {
 
         <canvas ref={canvasRef} className="hidden" />
       </div>
-    </>
+    </div>
   )
 }
 

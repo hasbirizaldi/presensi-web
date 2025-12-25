@@ -68,7 +68,7 @@ const Home = () => {
     date.toLocaleTimeString('id-ID')
 
   return (
-    <div className="lg:w-[70%] w-[98%] mx-auto mt-10 ">
+    <div className="lg:w-[70%] w-[98%] mx-auto pt-24 ">
       <div className="grid grid-cols-1 lg:grid-cols-2">
 
         {/* KIRI */}
@@ -76,7 +76,7 @@ const Home = () => {
           <h1 className="text-2xl font-bold">Jadwal Shalat Hari Ini</h1>
           <p>{formatDate(timeNow)}</p>
 
-          <p className="mt-4 text-4xl font-bold bg-white text-green-900 inline-block px-4 py-1 rounded">
+          <p className="mt-4 text-4xl font-bold bg-white text-green-900 inline-block px-4 w-50 py-1 rounded">
             {formatTime(timeNow)}
           </p>
 

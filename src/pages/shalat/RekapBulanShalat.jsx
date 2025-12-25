@@ -9,7 +9,7 @@ const RekapBulanShalat = () => {
   })
 
   return (
-    <>
+    <div className='py-14'>
       <TopBar />
       <div className="lg:w-[70%] w-[98%] mx-auto mt-6 rounded-lg shadow-ku overflow-x-auto">
         <div className="bg-white lg:px-10 px-1 lg:py-5 py-4">
@@ -43,7 +43,7 @@ const RekapBulanShalat = () => {
           </table>
         </div>
       </div>
-    </>
+    </div>
   )
 }
 
