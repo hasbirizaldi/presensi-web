@@ -4,9 +4,10 @@ import TopBar from '../../components/shalat/TopBar'
 /* ================== DATA MASJID ================== */
 const MASJID = {
   nama: 'Masjid Al-Ikhlas',
-  lat: -7.629732133249281,
-  lng: 109.53044132264107,
+  lat: -7.663056746749474,
+  lng: 109.6093798838305,
 }
+
 /* ================== HITUNG JARAK ================== */
 const hitungJarak = (lat1, lon1, lat2, lon2) => {
   const R = 6371 // KM
