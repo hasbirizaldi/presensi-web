@@ -3,7 +3,7 @@ import TopBar from '../../components/shalat/TopBar'
 
 /* ================== DATA MASJID ================== */
 const MASJID = {
-  nama: 'Masjid Al-Ikhlas',
+  nama: 'Masjid Baiturrahman RS PKU Muhammadiyah Sruweng',
   lat: -7.663056746749474,
   lng: 109.6093798838305,
 }
