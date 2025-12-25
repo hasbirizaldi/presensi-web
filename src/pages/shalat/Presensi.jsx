@@ -94,45 +94,73 @@ const AbsensiShalat = () => {
       return
     }
 
+    const video = videoRef.current
+    const canvas = canvasRef.current
+
+    // PASTIKAN VIDEO SIAP
+    if (!video.videoWidth || !video.videoHeight) {
+      alert('Kamera belum siap, tunggu sebentar')
+      return
+    }
+
     try {
       const lokasi = await ambilLokasi()
 
-      const canvas = canvasRef.current
-      const video = videoRef.current
-
-      canvas.width = video.videoWidth
-      canvas.height = video.videoHeight
+      // ===== PAKSA PORTRAIT =====
+      const WIDTH = 720
+      const HEIGHT = 1280
+      canvas.width = WIDTH
+      canvas.height = HEIGHT
 
       const ctx = canvas.getContext('2d')
 
-      // Gambar kamera
-      ctx.drawImage(video, 0, 0)
+      // ===== CROP TENGAH VIDEO =====
+      const videoRatio = video.videoWidth / video.videoHeight
+      const canvasRatio = WIDTH / HEIGHT
 
-      const now = new Date()
-      const waktu = now.toLocaleString('id-ID')
+      let sx, sy, sWidth, sHeight
 
-      // Background teks
-      ctx.fillStyle = 'rgba(0,0,0,0.45)'
-      ctx.fillRect(0, canvas.height - 120, canvas.width, 120)
+      if (videoRatio > canvasRatio) {
+        sHeight = video.videoHeight
+        sWidth = sHeight * canvasRatio
+        sx = (video.videoWidth - sWidth) / 2
+        sy = 0
+      } else {
+        sWidth = video.videoWidth
+        sHeight = sWidth / canvasRatio
+        sx = 0
+        sy = (video.videoHeight - sHeight) / 2
+      }
 
-      // Teks
-      ctx.fillStyle = '#fff'
-      ctx.font = '20px Arial'
-
-      ctx.fillText(`Shalat : ${shalat}`, 20, canvas.height - 90)
-      ctx.fillText(`Waktu  : ${waktu}`, 20, canvas.height - 65)
-      ctx.fillText(`Kota   : ${lokasi.city}`, 20, canvas.height - 40)
-      ctx.fillText(
-        `Kordinat  : ${lokasi.lat}, ${lokasi.lng}`,
-        20,
-        canvas.height - 15
+      ctx.drawImage(
+        video,
+        sx,
+        sy,
+        sWidth,
+        sHeight,
+        0,
+        0,
+        WIDTH,
+        HEIGHT
       )
 
-      setFoto(canvas.toDataURL('image/png'))
-    } catch (err) {
-      alert(err)
-    }
+    // ===== TEKS INFO =====
+    const waktu = new Date().toLocaleString('id-ID')
+
+    ctx.fillStyle = 'rgba(0,0,0,0.55)'
+    ctx.fillRect(0, HEIGHT - 160, WIDTH, 160)
+
+    ctx.fillStyle = '#fff'
+    ctx.font = '26px Arial'
+    ctx.fillText(`Shalat : ${shalat}`, 30, HEIGHT - 110)
+    ctx.fillText(`Waktu  : ${waktu}`, 30, HEIGHT - 75)
+    ctx.fillText(`Kota   : ${lokasi.city}`, 30, HEIGHT - 40)
+
+    setFoto(canvas.toDataURL('image/jpeg', 0.9))
+  } catch (err) {
+    alert(err)
   }
+}
 
 
 
@@ -175,12 +203,18 @@ const AbsensiShalat = () => {
           {/* KAMERA */}
           {!foto ? (
             <>
-        <video
-          ref={videoRef}
-          autoPlay
-          playsInline
-          className="rounded-lg border w-[320px] h-[420px] object-cover"
-        />
+          <video
+            ref={videoRef}
+            autoPlay
+            playsInline
+            className="
+              rounded-lg border
+              w-[240px] h-[420px]
+              aspect-[9/16]
+              object-cover
+            "
+          />
+
 
 
               <div className="flex gap-3">
@@ -203,7 +237,7 @@ const AbsensiShalat = () => {
               <img
                 src={foto}
                 alt="Selfie"
-                className="rounded-lg border w-[320px]"
+                className="rounded-lg border w-[250px]"
               />
               <p className="text-slate-600 text-sm">
                 Shalat: <span className="font-semibold">{shalat}</span>
