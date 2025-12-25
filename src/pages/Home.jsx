@@ -4,7 +4,11 @@ import { FaLocationDot } from "react-icons/fa6";
 const Home = () => {
   const [timeNow, setTimeNow] = useState(new Date())
   const [jadwal, setJadwal] = useState(null)
-  const [lokasi, setLokasi] = useState('Gombong')
+  const [lokasi, setLokasi] = useState({
+    kecamatan: '',
+    kabupaten: '',
+  })
+
   const [loading, setLoading] = useState(true)
 
   // JAM REALTIME
@@ -33,15 +37,27 @@ const Home = () => {
               `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`
             )
             const lokasiData = await lokasiRes.json()
-            setLokasi(
-              lokasiData.address?.town ||
-              lokasiData.address?.city ||
-              lokasiData.address?.village ||
-              'Lokasi Anda'
-            )
+            const address = lokasiData.address || {}
+
+            setLokasi({
+              kecamatan:
+                address.city_district ||
+                address.district ||
+                address.suburb ||
+                '-',
+              kabupaten:
+                address.city ||
+                address.town ||
+                address.county ||
+                '-',
+            })
           } catch {
-            setLokasi('Lokasi Anda')
+            setLokasi({
+              kecamatan: '-',
+              kabupaten: '-',
+            })
           }
+
 
           setLoading(false)
         } catch (err) {
@@ -82,7 +98,15 @@ const Home = () => {
 
           <div className="mt-3 flex justify-center gap-2">
             <FaLocationDot />
-            <span className="font-semibold">{lokasi}</span>
+            <div className="text-center">
+              <p className="font-semibold">
+                {lokasi.kabupaten}
+              </p>
+              <p className="text-sm">
+                Kec. {lokasi.kecamatan}
+              </p>
+            </div>
+
           </div>
         </div>
 

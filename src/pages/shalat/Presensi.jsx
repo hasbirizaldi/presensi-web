@@ -45,6 +45,7 @@ const AbsensiShalat = () => {
               lng: lng.toFixed(6),
               city,
               district,
+      
             })
           } catch {
             resolve({
@@ -52,6 +53,7 @@ const AbsensiShalat = () => {
               lng: lng.toFixed(6),
               city: '-',
               district: '-',
+             
             })
           }
         },
@@ -191,7 +193,7 @@ const AbsensiShalat = () => {
           <select
             value={shalat}
             onChange={(e) => setShalat(e.target.value)}
-            className="border rounded px-3 py-2 lg:w-[50%] w-full"
+            className="border rounded px-3 py-2 lg:w-[50%] w-full cursor-pointer"
           >
             <option value="">-- Pilih Shalat --</option>
             <option value="Subuh">Subuh</option>
@@ -213,7 +215,7 @@ const AbsensiShalat = () => {
 
               <button
                 onClick={ambilFoto}
-                className="bg-green-700 text-white px-6 py-2 rounded"
+                className="bg-green-700 text-white px-6 py-2 rounded cursor-pointer"
               >
                 Ambil Foto
               </button>
@@ -227,7 +229,7 @@ const AbsensiShalat = () => {
               />
               <button
                 onClick={refreshAbsensi}
-                className="text-sm text-red-600"
+                className="text-sm text-red-600 cursor-pointer"
               >
                 Ulangi
               </button>
