@@ -63,24 +63,24 @@ const AbsensiShalat = () => {
 
   // ================== AKTIFKAN KAMERA ==================
   const startCamera = () => {
-    navigator.mediaDevices
-      .getUserMedia({
-        video: {
-          facingMode: 'user',
-          width: { ideal: 720 },
-          height: { ideal: 1280 },
-          aspectRatio: 9 / 16,
-        },
-        audio: false,
-      })
-      .then((mediaStream) => {
-        setStream(mediaStream)
-        if (videoRef.current) {
-          videoRef.current.srcObject = mediaStream
-        }
-      })
-      .catch(() => alert('Kamera tidak dapat diakses'))
-  }
+  navigator.mediaDevices
+    .getUserMedia({
+      video: {
+        facingMode: 'user',
+        width: { ideal: 720 },
+        height: { ideal: 960 }, // SAMA DENGAN CANVAS
+      },
+      audio: false,
+    })
+    .then((mediaStream) => {
+      setStream(mediaStream)
+      if (videoRef.current) {
+        videoRef.current.srcObject = mediaStream
+      }
+    })
+    .catch(() => alert('Kamera tidak dapat diakses'))
+}
+
 
   useEffect(() => {
     startCamera()
@@ -93,79 +93,79 @@ const AbsensiShalat = () => {
 
   // ================== AMBIL FOTO (PORTRAIT FIX) ==================
   const ambilFoto = async () => {
-    if (!shalat) {
-      alert('Pilih shalat terlebih dahulu')
-      return
-    }
-
-    const video = videoRef.current
-    const canvas = canvasRef.current
-
-    if (!video || !video.videoWidth) {
-      alert('Kamera belum siap')
-      return
-    }
-
-    try {
-      const lokasi = await ambilLokasi()
-
-      const WIDTH = 720
-      const HEIGHT = 1280
-
-      canvas.width = WIDTH
-      canvas.height = HEIGHT
-
-      const ctx = canvas.getContext('2d')
-
-      // ===== CROP TENGAH (ANTI LANDSCAPE) =====
-      const videoRatio = video.videoWidth / video.videoHeight
-      const canvasRatio = WIDTH / HEIGHT
-
-      let sx, sy, sWidth, sHeight
-
-      if (videoRatio > canvasRatio) {
-        sHeight = video.videoHeight
-        sWidth = sHeight * canvasRatio
-        sx = (video.videoWidth - sWidth) / 2
-        sy = 0
-      } else {
-        sWidth = video.videoWidth
-        sHeight = sWidth / canvasRatio
-        sx = 0
-        sy = (video.videoHeight - sHeight) / 2
-      }
-
-      ctx.drawImage(
-        video,
-        sx,
-        sy,
-        sWidth,
-        sHeight,
-        0,
-        0,
-        WIDTH,
-        HEIGHT
-      )
-
-      // ===== TEKS INFO =====
-      const waktu = new Date().toLocaleString('id-ID')
-
-      ctx.fillStyle = 'rgba(0,0,0,0.6)'
-      ctx.fillRect(0, HEIGHT - 200, WIDTH, 200)
-
-      ctx.fillStyle = '#fff'
-      ctx.font = '24px Arial'
-
-      ctx.fillText(`Shalat     : ${shalat}`, 30, HEIGHT - 150)
-      ctx.fillText(`Waktu      : ${waktu}`, 30, HEIGHT - 115)
-      ctx.fillText(`Kota       : ${lokasi.city}`, 30, HEIGHT - 80)
-      ctx.fillText(`Kecamatan  : ${lokasi.district}`, 30, HEIGHT - 45)
-
-      setFoto(canvas.toDataURL('image/jpeg', 0.9))
-    } catch (err) {
-      alert(err)
-    }
+  if (!shalat) {
+    alert('Pilih shalat terlebih dahulu')
+    return
   }
+
+  const video = videoRef.current
+  const canvas = canvasRef.current
+
+  if (!video || !video.videoWidth) {
+    alert('Kamera belum siap')
+    return
+  }
+
+  try {
+    const lokasi = await ambilLokasi()
+
+    const WIDTH = 720
+    const HEIGHT = 960
+
+    canvas.width = WIDTH
+    canvas.height = HEIGHT
+
+    const ctx = canvas.getContext('2d')
+
+    // ===== CROP TENGAH =====
+    const videoRatio = video.videoWidth / video.videoHeight
+    const canvasRatio = WIDTH / HEIGHT
+
+    let sx, sy, sWidth, sHeight
+
+    if (videoRatio > canvasRatio) {
+      sHeight = video.videoHeight
+      sWidth = sHeight * canvasRatio
+      sx = (video.videoWidth - sWidth) / 2
+      sy = 0
+    } else {
+      sWidth = video.videoWidth
+      sHeight = sWidth / canvasRatio
+      sx = 0
+      sy = (video.videoHeight - sHeight) / 2
+    }
+
+    ctx.drawImage(
+      video,
+      sx,
+      sy,
+      sWidth,
+      sHeight,
+      0,
+      0,
+      WIDTH,
+      HEIGHT
+    )
+
+    // ===== TEKS =====
+    const waktu = new Date().toLocaleString('id-ID')
+
+    ctx.fillStyle = 'rgba(0,0,0,0.6)'
+    ctx.fillRect(0, HEIGHT - 150, WIDTH, 150)
+
+    ctx.fillStyle = '#fff'
+    ctx.font = '22px Arial'
+
+    ctx.fillText(`Shalat     : ${shalat}`, 24, HEIGHT - 100)
+    ctx.fillText(`Waktu      : ${waktu}`, 24, HEIGHT - 70)
+    ctx.fillText(`Lokasi       : ${lokasi.city}, ${lokasi.district}`, 24, HEIGHT - 40)
+
+    setFoto(canvas.toDataURL('image/jpeg', 0.9))
+  } catch (err) {
+    alert(err)
+  }
+}
+
 
   // ================== RESET ==================
   const refreshAbsensi = () => {
@@ -182,7 +182,7 @@ const AbsensiShalat = () => {
     <div className="py-14">
       <TopBar />
 
-      <div className="w-[95%] max-w-md mx-auto mt-6 bg-white rounded-lg shadow p-6">
+      <div className="lg:w-[70%] w-[98%] mx-auto mt-6 bg-white rounded-lg shadow p-6">
         <p className="text-lg font-semibold text-center mb-4">
           Absensi Shalat
         </p>
@@ -191,7 +191,7 @@ const AbsensiShalat = () => {
           <select
             value={shalat}
             onChange={(e) => setShalat(e.target.value)}
-            className="border rounded px-3 py-2 w-full"
+            className="border rounded px-3 py-2 lg:w-[50%] w-full"
           >
             <option value="">-- Pilih Shalat --</option>
             <option value="Subuh">Subuh</option>
@@ -208,7 +208,7 @@ const AbsensiShalat = () => {
                 ref={videoRef}
                 autoPlay
                 playsInline
-                className="w-[240px] h-[420px] rounded-lg border object-cover"
+                className="w-[340px] h-[420px] rounded-lg border object-cover"
               />
 
               <button
