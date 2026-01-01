@@ -1,5 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import TopBar from '../../components/shalat/TopBar'
+import { alertError, alertSuccess } from '../../utils/alert'
+import { useNavigate } from 'react-router-dom'
 
 /* ================== DATA MASJID ================== */
 const MASJID = {
@@ -10,21 +12,19 @@ const MASJID = {
 
 /* ================== HITUNG JARAK ================== */
 const hitungJarak = (lat1, lon1, lat2, lon2) => {
-  const R = 6371 // KM
+  const R = 6371
   const toRad = (v) => (v * Math.PI) / 180
 
   const dLat = toRad(lat2 - lat1)
   const dLon = toRad(lon2 - lon1)
 
   const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.sin(dLat / 2) ** 2 +
     Math.cos(toRad(lat1)) *
       Math.cos(toRad(lat2)) *
-      Math.sin(dLon / 2) *
-      Math.sin(dLon / 2)
+      Math.sin(dLon / 2) ** 2
 
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
-  return R * c
+  return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)))
 }
 
 const AbsensiShalat = () => {
@@ -34,15 +34,12 @@ const AbsensiShalat = () => {
   const [foto, setFoto] = useState(null)
   const [shalat, setShalat] = useState('')
   const [stream, setStream] = useState(null)
+  const [loading, setLoading] = useState(false)
+  const navigate = useNavigate()
 
   /* ================== AMBIL LOKASI ================== */
-  const ambilLokasi = () => {
-    return new Promise((resolve, reject) => {
-      if (!navigator.geolocation) {
-        reject('Geolocation tidak didukung')
-        return
-      }
-
+  const ambilLokasi = () =>
+    new Promise((resolve, reject) => {
       navigator.geolocation.getCurrentPosition(
         async (pos) => {
           const lat = pos.coords.latitude
@@ -57,74 +54,81 @@ const AbsensiShalat = () => {
             resolve({
               lat,
               lng,
-              city:
-                data.address.city ||
-                data.address.town ||
-                data.address.village ||
-                '-',
-              district:
-                data.address.suburb ||
-                data.address.city_district ||
-                data.address.county ||
-                '-',
+              posisi:
+                `${data.address.city || data.address.town || data.address.village || '-'}, ` +
+                `${data.address.suburb || data.address.city_district || '-'}`,
             })
           } catch {
-            resolve({
-              lat,
-              lng,
-              city: '-',
-              district: '-',
-            })
+            resolve({ lat, lng, posisi: '-' })
           }
         },
         () => reject('Izin lokasi ditolak'),
         { enableHighAccuracy: true }
       )
     })
-  }
 
   /* ================== KAMERA ================== */
-  const startCamera = () => {
-    navigator.mediaDevices
-      .getUserMedia({
-        video: {
-          facingMode: 'user',
-          width: { ideal: 720 },
-          height: { ideal: 960 },
-        },
+  const startCamera = async () => {
+    try {
+      const mediaStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'user', width: 720, height: 960 },
         audio: false,
       })
-      .then((mediaStream) => {
-        setStream(mediaStream)
-        if (videoRef.current) {
-          videoRef.current.srcObject = mediaStream
-        }
-      })
-      .catch(() => alert('Kamera tidak dapat diakses'))
+      setStream(mediaStream)
+      videoRef.current.srcObject = mediaStream
+    } catch {
+      alertError('Kamera tidak dapat diakses')
+    }
   }
 
   useEffect(() => {
     startCamera()
-    return () => {
-      if (stream) {
-        stream.getTracks().forEach((t) => t.stop())
-      }
-    }
+    return () => stream?.getTracks().forEach((t) => t.stop())
   }, [])
 
   /* ================== AMBIL FOTO ================== */
   const ambilFoto = async () => {
-    if (!shalat) {
-      alert('Pilih shalat dulu')
-      return
-    }
+    if (!shalat) return alertError('Pilih shalat dulu')
 
     const video = videoRef.current
     const canvas = canvasRef.current
-    if (!video || !video.videoWidth) {
-      alert('Kamera belum siap')
-      return
-    }
+    if (!video.videoWidth) return alertError('Kamera belum siap')
+
+    const lokasi = await ambilLokasi()
+    const jarakKm = hitungJarak(
+      lokasi.lat,
+      lokasi.lng,
+      MASJID.lat,
+      MASJID.lng
+    )
+
+    const jarakText =
+      jarakKm < 1
+        ? `${(jarakKm * 1000).toFixed(0)} meter`
+        : `${jarakKm.toFixed(2)} km`
+
+    canvas.width = 720
+    canvas.height = 960
+
+    const ctx = canvas.getContext('2d')
+    ctx.drawImage(video, 0, 0, 720, 960)
+
+    ctx.fillStyle = 'rgba(0,0,0,0.6)'
+    ctx.fillRect(0, 780, 720, 180)
+
+    ctx.fillStyle = '#fff'
+    ctx.font = '22px Arial'
+    ctx.fillText(`Shalat : ${shalat}`, 24, 820)
+    ctx.fillText(`Lokasi : ${lokasi.posisi}`, 24, 850)
+    ctx.fillText(`Jarak  : ${jarakText}`, 24, 880)
+
+    setFoto(canvas.toDataURL('image/jpeg', 0.9))
+  }
+
+  /* ================== KIRIM KE BACKEND ================== */
+  const kirimAbsensi = async () => {
+    setLoading(true)
+    const token = localStorage.getItem('token')
 
     try {
       const lokasi = await ambilLokasi()
@@ -135,89 +139,61 @@ const AbsensiShalat = () => {
         MASJID.lng
       )
 
-      const jarakText =
-        jarakKm < 1
-          ? `${(jarakKm * 1000).toFixed(0)} meter`
-          : `${jarakKm.toFixed(2)} km`
-
-      const WIDTH = 720
-      const HEIGHT = 960
-
-      canvas.width = WIDTH
-      canvas.height = HEIGHT
-
-      const ctx = canvas.getContext('2d')
-
-      /* ===== CROP PORTRAIT ===== */
-      const vr = video.videoWidth / video.videoHeight
-      const cr = WIDTH / HEIGHT
-      let sx, sy, sw, sh
-
-      if (vr > cr) {
-        sh = video.videoHeight
-        sw = sh * cr
-        sx = (video.videoWidth - sw) / 2
-        sy = 0
-      } else {
-        sw = video.videoWidth
-        sh = sw / cr
-        sx = 0
-        sy = (video.videoHeight - sh) / 2
-      }
-
-      ctx.drawImage(video, sx, sy, sw, sh, 0, 0, WIDTH, HEIGHT)
-
-      /* ===== OVERLAY ===== */
-      ctx.fillStyle = 'rgba(0,0,0,0.6)'
-      ctx.fillRect(0, HEIGHT - 180, WIDTH, 180)
-
-      ctx.fillStyle = '#fff'
-      ctx.font = '22px Arial'
-
-      const waktu = new Date().toLocaleString('id-ID')
-
-      ctx.fillText(`Shalat      : ${shalat}`, 24, HEIGHT - 130)
-      ctx.fillText(`Waktu       : ${waktu}`, 24, HEIGHT - 100)
-      ctx.fillText(
-        `Lokasi      : ${lokasi.city}, ${lokasi.district}`,
-        24,
-        HEIGHT - 70
-      )
-      ctx.fillText(
-        `Jarak Masjid: ${jarakText}`,
-        24,
-        HEIGHT - 40
+      const res = await fetch(
+        'https://brewokode.site/api/presensi-shalat',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            shalat: shalat.toLowerCase(),
+            foto,
+            latitude: lokasi.lat,
+            longitude: lokasi.lng,
+            posisi: lokasi.posisi,
+            jarak:
+              jarakKm < 1
+                ? `${(jarakKm * 1000).toFixed(0)} meter`
+                : `${jarakKm.toFixed(2)} km`,
+          }),
+        }
       )
 
-      setFoto(canvas.toDataURL('image/jpeg', 0.9))
-    } catch (err) {
-      alert(err)
+      const data = await res.json()
+      if (!res.ok) return alertError(data.message)
+
+      alertSuccess('Absensi shalat berhasil')
+      navigate('/absensi-shalat/rekap-shalat-bulan')
+    } catch {
+      alertError('Gagal mengirim absensi')
+    } finally {
+      setLoading(false)
     }
   }
 
-  /* ================== RESET ================== */
   const refreshAbsensi = () => {
     setFoto(null)
     setShalat('')
-    if (stream) stream.getTracks().forEach((t) => t.stop())
+    stream?.getTracks().forEach((t) => t.stop())
     startCamera()
   }
 
   /* ================== UI ================== */
   return (
-    <div className="py-14">
+    <div className="sm:py-14 py-8">
       <TopBar />
-
-      <div className="lg:w-[70%] w-[98%] mx-auto mt-6 bg-white rounded-lg shadow p-6">
-        <p className="text-lg font-semibold text-center mb-4">
+      <div className="lg:w-[90%] w-[98%] mx-auto sm:mt-6 mt-2 bg-white rounded-lg shadow-ku sm:p-6 p-3">
+        <p className="sm:text-lg font-semibold text-center sm:mb-4 mb-2">
           Absensi Shalat
         </p>
 
-        <div className="flex flex-col items-center gap-4">
+        <div className="flex flex-col items-center sm:text-base text-sm gap-4">
           <select
             value={shalat}
             onChange={(e) => setShalat(e.target.value)}
-            className="border rounded px-3 py-2 lg:w-[50%] w-full"
+            className="border-2 sm:text-base text-sm border-green-800 rounded px-3 py-1"
           >
             <option value="">-- Pilih Shalat --</option>
             <option>Subuh</option>
@@ -225,7 +201,6 @@ const AbsensiShalat = () => {
             <option>Ashar</option>
             <option>Maghrib</option>
             <option>Isya</option>
-            <option>Jumat</option>
           </select>
 
           {!foto ? (
@@ -234,7 +209,7 @@ const AbsensiShalat = () => {
                 ref={videoRef}
                 autoPlay
                 playsInline
-                className="w-[340px] h-[420px] rounded-lg border object-cover"
+                className="w-[340px] h-[420px] rounded border object-cover"
               />
               <button
                 onClick={ambilFoto}
@@ -246,6 +221,13 @@ const AbsensiShalat = () => {
           ) : (
             <>
               <img src={foto} className="w-[240px] rounded border" />
+              <button
+                onClick={kirimAbsensi}
+                disabled={loading}
+                className="bg-green-700 text-white px-6 py-2 rounded"
+              >
+                {loading ? 'Mengirim...' : 'Kirim Absensi'}
+              </button>
               <button
                 onClick={refreshAbsensi}
                 className="text-red-600 text-sm"
